@@ -5,3 +5,5 @@ to do that:
 ```bash
 sudo ./netTool -findprinters
 ```
+the way it gets URLs from the packet data is really disgusting and horrible <br>
+i should fix that sometime i think
