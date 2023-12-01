@@ -3,6 +3,7 @@ Small tool for doing stuff on networks <br>
 
 ## Specialized args
 * `-findprinters` 
+* `-onlynum`
 
 # GET PRINTER SETTING PAGES
 I mean the main thing it does is find the admin panel urls for printers that broadcast it on the network <br>
