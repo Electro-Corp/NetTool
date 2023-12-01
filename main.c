@@ -3,6 +3,13 @@
 
     Requires:
         libpcap (shocker)
+
+    Features:
+        > Finds control panel urls of broadcasting printers (-findprinters)
+            * This was mainly why I wrote the program lamo
+        > General packet sniffing
+            * List amount of packets found (-onlynum)
+            * Dump all packet data (launch netTool with no args)
 */
 
 // Standard C libraries
@@ -11,7 +18,7 @@
 #include <string.h>
 
 // Other
-#include <pcap.h>
+#include <pcap.h> // the goat (does all the heavy lifiting tbh)
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
@@ -50,19 +57,26 @@ char printerUrls[256][256];
 int printers = 0;
 
 int packet_count_limit = 1;
-int timeout_limit = 10; //10000;
+int timeout_limit = 10  ; //10000;
 int ethernet_header_length = 14;
+
+int numPackets = 0;
 
 FILE* fp;
 
 // Settings
 int printDebug = 1;
 int getPrint = 0;
+int onlyNum = 0;
 
 int main(int argc, char* args[]){
-    if(argc >= 2){
-        if(strcmp(args[1], "-findprinters") == 0){
+    for(int i = 0; i < argc; i++){
+        if(strcmp(args[i], "-findprinters") == 0){
             getPrint = 1;
+            printDebug = 0;
+        }
+        if(strcmp(args[i], "-onlynum") == 0){
+            onlyNum = 1;
             printDebug = 0;
         }
     }
@@ -72,21 +86,29 @@ int main(int argc, char* args[]){
 
     // Begin reading packets
     printf("==========\n");
-    if(getPrint) printf("Configuation Page List: \n");
+    if(getPrint) printf("Printer configuation Page List: \n");
     ReadPackets();
 }
 
 
 void PrintIntro(){
     printf("===========================\n");
-    printf("        NETWORK TOOLS      \n");
+    printf("       NETWORK TOOLS       \n");
     printf("===========================\n");
+    printf("*** Obligitory legal disclaimer: ***\n");
+    printf("Idk i mean this is probabbly illegal (maybe? idk man) to run\non networks you dont own or dont\nhave permission to go\nsnooping around on, idk tho\nim not a lawyer (thank god)\nso just be careful and not stupid");
+    printf("\n************************************\n");
     if(getPrint) printf("> Find Printer Admin Panel mode\n");
+    if(onlyNum) printf("> Display packet statistics mode\n");
 }
 
+/*
+    Despite its name it only grabs the wireless card
+*/
 void GetDevices(){
     //
-    printf("Getting WLAN0...\n");
+    printf("--------------------------\n");
+    printf("Getting wireless card...\n");
     char error_buffer[PCAP_ERRBUF_SIZE];
 
     // Get name
@@ -117,13 +139,16 @@ void GetDevices(){
 
 
     // Print out data
-    printf("===== WLAN0 =====\n");
+    printf("------ WLAN0 ------\n");
     printf("DEV_NAME: %s\n", wlan0.name);
     printf("IP ADDR: %s\n", wlan0.ip);  
     printf("SUBNET MASK: %s\n", wlan0.subnet_mask);
+    printf("-------------------\n");
 }
 
-
+/*
+    Begin reading packets and setup pcap_loop
+*/
 void ReadPackets(){
     pcap_t *handle;
     const uint8_t *packet;
@@ -147,7 +172,14 @@ void ReadPackets(){
    
 }
 
+/*
+    The real main part of the program
+*/
 void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t *packet){
+    // Increment amount of packets found
+    numPackets++;
+
+    // 
     if(printDebug){
         printf("==== PACKET ====\n");
         printf("Packet capture length: %d\n", header->caplen);
@@ -178,7 +210,7 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
     }
 
     if(isWorth){
-        // Its an IP packet
+        // Its an IP packet then we do stuff
         const uint8_t *ip_header;
         const uint8_t *tcp_header;
         const uint8_t *payload;
@@ -198,9 +230,11 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
         tcp_header_length = ((*(tcp_header + 12)) & 0xF0) >> 4;
         tcp_header_length = tcp_header_length * 4;
 
-        payload_length = header->caplen - (ethernet_header_length + ip_header_length + tcp_header_length);
-
         int total_headers_size = ethernet_header_length+ip_header_length+tcp_header_length; // so we know how far until the payload
+
+
+        payload_length = header->caplen - total_headers_size;
+
         
         if(printDebug)
             printf("TOTAL HEADER SIZE %d\n", total_headers_size);
@@ -225,6 +259,8 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
 
             
             // PRINTER CHECK
+            // THIS IS ACTUALLY $H!T
+            // THERE IS PROBABBLY A MUCH BETTER WAY TO DO IT
             if(getPrint){
                 for(int i = 0; i < payload_length - 16; i++){
                     if(data[i] == 'h' && data[i+1] == 't' && data[i+2] == 't' && data[i+3] == 'p'){
@@ -239,12 +275,15 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
                                 url[c++] = data[i];
                             else break;
                         }
+
+                        // has the url already been found 
                         int pri = 0;
                         for(int j = 0; j < printers; j++){
                             if(strcmp(url, printerUrls[j]) == 0){
                                 pri = 1;
                             }
                         }
+                        // if not, save it and print it
                         if(!pri){
                             for(int k = 0; k < c; k++){
                                 printerUrls[printers][k] = url[k];
@@ -260,6 +299,11 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
             }
         }
 
+    }
+
+    // Only num
+    if(onlyNum){
+        printf("Packets: %d\r", numPackets);
     }
 
 }
