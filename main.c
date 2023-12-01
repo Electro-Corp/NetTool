@@ -303,17 +303,23 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
                 }
             }
 
-            
+
             // Print IP ADDRS
             if(!getPrint){
-                char dhost[13];
-                struct in_addr trust;
-                trust.s_addr = eth_header->ether_dhost;
-                strcpy(dhost, inet_ntoa(trust));
-                char shost[13];
-                trust.s_addr = eth_header->ether_shost;
-                strcpy(shost, inet_ntoa(trust));
-                printf("%d bytes from %s to %s\n", payload_length, shost, dhost);
+                // tmp struct for src to dest
+                struct in_addr addrs;
+
+                char sHost[INET_ADDRSTRLEN], dHost[INET_ADDRSTRLEN];
+
+                // Src host
+                addrs.s_addr = eth_header->ether_shost;
+                strcpy(sHost, inet_ntoa(addrs));
+
+                // Dest host
+                addrs.s_addr = eth_header->ether_dhost;
+                strcpy(dHost, inet_ntoa(addrs));
+                
+                printf("%d bytes from %s to %s\n", payload_length, sHost, dHost);
             }
         }
 
