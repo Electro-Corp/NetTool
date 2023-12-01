@@ -49,12 +49,10 @@ void ReadPackets();
 void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t *packet_body);
 
 // Global vars
-NTool_Device devices[256];
+NTool_Device wlan0; // Wireless card
 
-NTool_Device wlan0;
-
-char printerUrls[256][256];
-int printers = 0;
+char printerUrls[256][256]; // All Printer URLS
+int printers = 0; // Amount of printers
 
 int packet_count_limit = 1;
 int timeout_limit = 10  ; //10000;
@@ -62,7 +60,7 @@ int ethernet_header_length = 14;
 
 int numPackets = 0;
 
-FILE* fp;
+FILE* fp; // Printer files idk maybe
 
 // Settings
 int printDebug = 1;
@@ -186,7 +184,6 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
     // 
     if(printDebug){
         printf("==== PACKET ====\n");
-        printf("Packet capture length: %d\n", header->caplen);
         printf("Packet total length %d\n", header->len);
     }
     
