@@ -68,6 +68,7 @@ FILE* fp;
 int printDebug = 1;
 int getPrint = 0;
 int onlyNum = 0;
+int printData = 0;
 
 int main(int argc, char* args[]){
     for(int i = 0; i < argc; i++){
@@ -78,6 +79,9 @@ int main(int argc, char* args[]){
         if(strcmp(args[i], "-onlynum") == 0){
             onlyNum = 1;
             printDebug = 0;
+        }
+        if(strcmp(args[i], "-printdata") == 0){
+            printData = 1;
         }
     }
     fp = fopen("PRINTERS.TXT", "w");
@@ -189,6 +193,7 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
     struct ether_header *eth_header;
     eth_header = (struct ether_header *) packet;
 
+    
     int isWorth = 0;
 
     switch(ntohs(eth_header->ether_type)){
@@ -248,12 +253,12 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
             char data[payload_length];
 
             while (byte_count++ < payload_length) {
-                if(printDebug)
+                if(printData)
                     printf("%c", *temp_pointer);
                 data[byte_count] = *temp_pointer;
                 temp_pointer++;
             }
-            if(printDebug)
+            if(printData)
                 printf("\n");
 
 
@@ -297,6 +302,19 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
                     }
                 }
             }
+
+            
+            // Print IP ADDRS
+            if(!getPrint){
+                char dhost[13];
+                struct in_addr trust;
+                trust.s_addr = eth_header->ether_dhost;
+                strcpy(dhost, inet_ntoa(trust));
+                char shost[13];
+                trust.s_addr = eth_header->ether_shost;
+                strcpy(shost, inet_ntoa(trust));
+                printf("%d bytes from %s to %s\n", payload_length, shost, dhost);
+            }
         }
 
     }
@@ -305,5 +323,8 @@ void HandlePacket(uint8_t *args, const struct pcap_pkthdr *header, const uint8_t
     if(onlyNum){
         printf("Packets: %d\r", numPackets);
     }
+
+    
+
 
 }
